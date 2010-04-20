@@ -1,0 +1,9 @@
+^debian/
+\.git
+\.svn
+^_build
+^blib
+^Build$
+MANIFEST.bak
+^DhMakePerl-.*\.tar\.gz$
+^MYMETA.yml$

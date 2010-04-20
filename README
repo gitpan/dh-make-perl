@@ -1,0 +1,95 @@
+README
+
+DhMakePerl is the CPAN version of a debian tool used to create debian
+packages from CPAN modules. DhMakePerl is currently a bit for bit copy 
+of dh-make-perl which is available on debian and debian-like systems 
+with the command of;
+
+     aptitude install dh-make-perl
+
+You can get the source of dh-make-perl with;
+
+    aptitude source dh-make-perl
+
+The debian perl team strives to remain up-to-date with the native 
+debian code that this module was created from, but there is no 
+gaurantee of this. Please check the following sources for more 
+up-to-date software:
+
+The debian git repository
+http://git.debian.org/?p=pkg-perl/apps/dh-make-perl.git;a=summary
+
+The debian perl team web site
+http://pkg-perl.alioth.debian.org/
+
+PURPOSE 
+
+The purpose of this software is to create debian packages from 
+perl modules. From the dh-make-perl README file:
+
+"dh-make-perl will create the files required to build
+a debian source package out of a perl package.
+This works for most simple packages and is also useful
+for getting started with packaging perl modules for debian.
+
+There is an override mechanism in place to handle most of
+the little changes that may be needed for some modules
+(this hasn't been tested much, though).
+
+Using this program is no substiture for reading the
+debian developer documentation, including the policy,
+the perl policy, the packaging manual and so on."
+
+SUPPORT AND DOCUMENTATION
+
+After installing, you can find documentation for this module with the
+perldoc command.
+
+    perldoc DhMakePerl
+
+You can also look for information at:
+
+    RT, CPAN's request tracker
+        http://rt.cpan.org/NoAuth/Bugs.html?Dist=DhMakePerl
+
+    AnnoCPAN, Annotated CPAN documentation
+        http://annocpan.org/dist/DhMakePerl
+
+    CPAN Ratings
+        http://cpanratings.perl.org/d/DhMakePerl
+
+    Search CPAN
+        http://search.cpan.org/dist/DhMakePerl
+
+    The debian perl team web site
+	http://pkg-perl.alioth.debian.org/
+
+    The debian perl policy
+	http://www.debian.org/doc/packaging-manuals/perl-policy/
+
+    Debian New Maintainers guide
+	http://www.debian.org/doc/maint-guide/
+
+COPYRIGHTS AND LICENCE
+
+Copyright for this CPAN module:
+Copyright © 2009 - 2010 Jeremiah C. Foster
+
+Copyright for dh-make-perl:
+dh-make-perl was created by Paolo Molaro.
+
+It is currently maintained by Gunnar Wolf and others, under the umbrella of the
+Debian Perl Group <debian-perl@lists.debian.org>
+
+Copyright © 2000,2001 Paolo Molaro <lupus@debian.org>
+          © 2002,2003,2008 Ivan Kohler <ivan-debian@420.am>
+          © 2003,2004 Marc 'HE' Brockschmidt <he@debian.org>
+          © 2005-2007 Gunnar Wolf <gwolf@debian.org>
+          © 2006 Frank Lichtenheld <djpig@debian.org>
+          © 2007-2008 Gregor Herrmann <gregoa@debian.org>
+          © 2007-2010 Damyan Ivanov <dmn@debian.org>
+
+You can do anything with it according to the GPLv2: look
+in /usr/share/common-licenses/GPL-2 on your Debian system.
+
+This program is released under the following license: GPLv2
