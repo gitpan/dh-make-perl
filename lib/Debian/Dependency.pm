@@ -5,12 +5,12 @@ use warnings;
 
 use AptPkg::Config;
 use Carp;
-use Debian::Version qw(deb_ver_cmp);
+use Dpkg::Version ();
 use List::MoreUtils qw(mesh);
 
 =head1 NAME
 
-Debian::Dependency -- dependency relationship between Debian packages
+Debian::Dependency - dependency relationship between Debian packages
 
 =head1 SYNOPSIS
 
@@ -24,7 +24,7 @@ Debian::Dependency -- dependency relationship between Debian packages
    my $d = Debian::Dependency->new( 'perl', '>=', '5.10' );
 
    print $d->pkg;  # 'perl'
-   print $d->ver;  # '5.10
+   print $d->ver;  # '5.10'
 
                                     # for people who like to type much
    my $d = Debian::Dependency->new( { pkg => 'perl', ver => '5.10' } );
@@ -220,7 +220,7 @@ sub _compare {
 
     return 0 unless $left->ver; # both have no version
 
-    $res = deb_ver_cmp( $left->ver, $right->ver );
+    $res = $left->ver <=> $right->ver;
 
     return $res if $res != 0;
 
@@ -242,6 +242,9 @@ sub set {
     if $field eq 'ver'
         and defined($value)
         and $value =~ /^0[0.]*$/;
+
+    $value = Dpkg::Version->new( $value, check => 1 )
+        if $field eq 'ver' and defined($value);
 
     $self->SUPER::set( $field, $value );
 }
@@ -278,6 +281,7 @@ sub parse {
 
     if ($str =~ m{
             ^               # start from the beginning
+            \s*             # stray space
             ([^\(\s]+)      # package name - no paren, no space
             \s*             # oprional space
             (?:             # version is optional
@@ -329,7 +333,9 @@ or '>>'. Default is '>='.
 
 =item ver
 
-Contains the version of the package the dependency is about.
+Contains the version of the package the dependency is about. The value is an
+instance of L<Dpkg::Version> class. If you set it to a scalar value, that is
+given to L<Dpkg::Version>->new().
 
 =back
 
@@ -396,7 +402,7 @@ sub satisfies {
     return 0 if not $self->rel;
 
     # from this point below both $dep and we have relation (and version)
-    my $cmpver = deb_ver_cmp( $self->ver, $dep->ver );
+    my $cmpver = ( $self->ver <=> $dep->ver );
 
     if( $self->rel eq '>>' ) {
         # >> 4 satisfies also >> 3
@@ -491,7 +497,7 @@ L<Debian::Dependencies>
 
 =over 4
 
-=item Copyright (C) 2008,2009 Damyan Ivanov <dmn@debian.org>
+=item Copyright (C) 2008,2009,2010 Damyan Ivanov <dmn@debian.org>
 
 =back
 

@@ -510,10 +510,16 @@ sub extract_desc {
         $desc = $my_desc;
     }
 
-    # Replace linefeeds (not followed by a space) in short description with
-    # spaces
-    $desc =~ s/\n(?=\S)/ /gs;
-    $desc =~ s/^\s+//;      # strip leading spaces
+    if ( defined($desc) ) {
+        # Replace linefeeds (not followed by a space) in short description with
+        # spaces
+        $desc =~ s/\n(?=\S)/ /gs;
+        $desc =~ s/^\s+//;      # strip leading spaces
+    }
+
+    # have a fall-back for the short description
+    $desc ||= '(no short description found)';
+
     $bin->short_description($desc);
 
     my $long_desc;
@@ -655,6 +661,16 @@ sub extract_examples {
         },
         $dir
     );
+}
+
+sub read_rules {
+    my $self = shift;
+
+    return if $self->rules;
+
+    my $file = $self->debian_file('rules');
+
+    $self->rules( Debian::Rules->new($file) );
 }
 
 sub create_rules {
@@ -1070,7 +1086,7 @@ sub configure_cpan {
 
     return if $CPAN::Config_loaded;
 
-    CPAN::Config->load( be_silent => not $self->cfg->verbose );
+    CPAN::HandleConfig->load( be_silent => not $self->cfg->verbose );
 
     unshift( @{ $CPAN::Config->{'urllist'} }, $self->cfg->cpan_mirror )
         if $self->cfg->cpan_mirror;
@@ -1089,6 +1105,8 @@ sub configure_cpan {
 Just a wrapper around $self->control->discover_dependencies which provides the
 right parameters to it.
 
+Returns a list of missing modules.
+
 =cut
 
 sub discover_dependencies {
@@ -1104,7 +1122,7 @@ sub discover_dependencies {
         # control->discover_dependencies needs configured CPAN
         $self->configure_cpan;
 
-        $self->control->discover_dependencies(
+        return $self->control->discover_dependencies(
             {   dir          => $self->main_dir,
                 verbose      => $self->cfg->verbose,
                 apt_contents => $self->apt_contents,
@@ -1119,6 +1137,8 @@ sub discover_dependencies {
         warn "Please install 'apt-file' package and run 'apt-file update'\n";
         warn "as root.\n";
         warn "Dependencies not updated.\n";
+
+        return ();
     }
 }
 

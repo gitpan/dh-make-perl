@@ -57,10 +57,8 @@ use File::Copy qw( copy move );
 use File::Path ();
 use File::Spec::Functions qw( catfile );
 use Module::Depends            ();
+use Module::Build::ModuleInfo;
 use Text::Wrap qw( wrap );
-
-# TODO:
-# * get more info from the package (maybe using CPAN methods)
 
 sub check_deprecated_overrides {
     my $self = shift;
@@ -76,7 +74,7 @@ sub check_deprecated_overrides {
 }
 
 sub execute {
-    my ($self) = @_;
+    my ( $self, $already_done ) = @_;
 
     die "CPANPLUS support disabled, sorry" if $self->cfg->cpanplus;
 
@@ -123,7 +121,7 @@ sub execute {
     my $apt_contents = $self->get_apt_contents;
     my $src = $self->control->source;
 
-    $self->discover_dependencies;
+    my @missing = $self->discover_dependencies;
 
     $bin->Depends->add( $self->cfg->depends )
         if $self->cfg->depends;
@@ -189,7 +187,31 @@ sub execute {
     $self->install_package if $self->cfg->install;
     print "--- Done\n" if $self->cfg->verbose;
 
-    $self->package_already_exists($apt_contents);
+    $self->package_already_exists($apt_contents) 
+        or $self->modules_already_packaged($apt_contents);
+
+    if ( $self->cfg->recursive ) {
+        $already_done //= {};
+        my $mod_name = $self->perlname;
+        $mod_name =~ s/-/::/g;
+        $already_done->{$mod_name} = 1;
+
+        for my $m (@missing) {
+            next if exists $already_done->{$m};
+
+            if ( $self->cfg->verbose ) {
+                print "\n";
+                print "==================================\n";
+                print "  recursively building $m\n";
+                print "==================================\n";
+            }
+
+            my $new_cfg
+                = DhMakePerl::Config->new( { %{ $self->cfg }, cpan => $m, } );
+            my $maker = $self->new( { cfg => $new_cfg } );
+            $maker->execute($already_done)
+        }
+    }
 
     return(0);
 }
@@ -353,8 +375,9 @@ sub prune_deps(@) {
             my $cur_ver = $deps{$p};
 
             $deps{$p} = $v
-                if defined($v) and not defined($cur_ver)
-                    or deb_ver_cmp( $cur_ver, $v ) < 0;
+                if defined($v)
+                    and ( not defined($cur_ver)
+                        or $cur_ver < $v );
         }
         else {
             $deps{$p} = $v;
@@ -441,6 +464,82 @@ sub package_already_exists {
                 . $self->perlname . "\n";
         }
     }
+    else {
+        ( my $mod_name = $self->perlname ) =~ s/-/::/g;
+        require Debian::DpkgList;
+        my @found = Debian::DpkgList->scan_perl_mod($mod_name);
+
+        if (@found) {
+            warn "**********\n";
+            warn "NOTICE: the following locally installed package(s) already\n";
+            warn "        contain $mod_name\n";
+            warn "          ", join ( ', ', @found ), "\n";
+            $found = 1;
+        }
+    }
+
+    return $found ? 1 : 0;
+}
+
+sub modules_already_packaged {
+    my( $self, $apt_contents ) = @_;
+
+    my @modules;
+
+    File::Find::find(
+        sub {
+            if ( basename($File::Find::dir)
+                =~ /^(?:\.(?:git|svn|hg|)|CVS|eg|samples?|examples?|t)$/ )
+            {
+                $File::Find::prune = 1;
+                return;
+            }
+            if (/.+\.pm$/) {
+                my $mi = Module::Build::ModuleInfo->new_from_file(
+                    $File::Find::name);
+                push @modules, $mi->packages_inside;
+            }
+        },
+        $self->main_dir,
+    );
+
+    my $found;
+
+    sub show_notice($$) {
+        warn $_[0] unless $_[1];
+        $_[1] = 1;
+    }
+
+    my $notice = <<EOF;
+*** Notice ***
+Some of the modules in the newly created package are already present
+in other packages.
+
+EOF
+    my $notice_shown = 0;
+
+    for my $mod (@modules) {
+        if ($apt_contents) {
+            $found = $apt_contents->find_perl_module_package($mod);
+
+            if ($found) {
+                show_notice( $notice, $notice_shown );
+                warn "  $mod is in '$found' (APT)\n";
+            }
+        }
+        if ( !$found ) {
+            require Debian::DpkgLists;
+            my @found = Debian::DpkgLists->scan_perl_mod($mod);
+
+            if (@found) {
+                show_notice( $notice, $notice_shown );
+                warn "  $mod is in " . join( ', ', @found ), " (local .deb)\n";
+                $found = 1;
+            }
+        }
+    }
+
+    warn "\n" if $notice_shown;
 
     return $found ? 1 : 0;
 }

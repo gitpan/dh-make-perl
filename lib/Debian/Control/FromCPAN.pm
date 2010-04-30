@@ -19,8 +19,7 @@ use Carp qw(croak);
 use base 'Debian::Control';
 
 use CPAN ();
-use Debian::Version qw(deb_ver_cmp);
-use DhMakePerl::Utils qw( is_core_module find_cpan_module nice_perl_ver );
+use DhMakePerl::Utils qw( is_core_module find_cpan_module nice_perl_ver split_version_relation );
 use File::Spec qw( catfile );
 use Module::Depends ();
 
@@ -69,6 +68,9 @@ An instance of L<Debian::WNPP::Query> to be used when checking for WNPP bugs of
 depeended upon packages.
 
 =back
+
+Returns a list of module names for which no suitable Debian packages were
+found.
 
 =cut
 
@@ -234,6 +236,8 @@ EOF
         }
 
     }
+
+    return @$missing;
 }
 
 =item find_debs_for_modules I<dep hash>[, APT contents[, verbose ]]
@@ -254,6 +258,12 @@ sub find_debs_for_modules {
 
     while ( my ( $module, $version ) = each %$dep_hash ) {
 
+        my $ver_rel;
+
+        ( $ver_rel, $version ) = split_version_relation($version) if $version;
+
+        $version =~ s/^v// if $version;
+
         my $dep;
 
         if ($apt_contents) {
@@ -262,10 +272,22 @@ sub find_debs_for_modules {
         elsif ( my $ver = is_core_module( $module, $version ) ) {
             $dep = Debian::Dependency->new( 'perl', $ver );
         }
+        else {
+            require Debian::DpkgLists;
+            if ( my @pkgs = Debian::DpkgLists->scan_perl_mod($module) ) {
+                $dep = Debian::Dependency->new(
+                      ( @pkgs > 1 )
+                    ? [ map { { pkg => $_, ver => $version } } @pkgs ]
+                    : ( $pkgs[0], $version )
+                );
+            }
+        }
 
+        $dep->rel($ver_rel) if $dep and $ver_rel and $dep->ver;
+
+        my $mod_ver = join( " ", $module, $ver_rel, $version || () );
         if ($dep) {
             if ($verbose) {
-                my $mod_ver = join( " ", $module, $version || () );
                 if ( $dep->pkg and $dep->pkg eq 'perl' ) {
                     print "= $mod_ver is in core";
                     print " since " . $dep->ver if $dep->ver;
@@ -277,7 +299,7 @@ sub find_debs_for_modules {
             }
         }
         else {
-            print "- $module not found in any package\n";
+            print "- $mod_ver not found in any package\n";
             push @missing, $module;
 
             my $mod = find_cpan_module($module);
@@ -288,7 +310,7 @@ sub find_debs_for_modules {
                 print "   CPAN contains it in $dist\n";
                 print "   substituting package name of $pkg\n";
 
-                $dep = Debian::Dependency->new( $pkg, $dep_hash->{$module} );
+                $dep = Debian::Dependency->new( $pkg, $ver_rel, $version );
             }
             else {
                 print "   - it seems it is not available even via CPAN\n";
@@ -364,7 +386,7 @@ sub prune_simple_perl_dep {
     my $unversioned = (
         not $dep->ver
             or $dep->rel =~ />/
-            and deb_ver_cmp( $dep->ver, $self->oldstable_perl_version ) <= 0
+            and $dep->ver <= $self->oldstable_perl_version
     );
 
     # if the dependency is considered unversioned, make sure there is no

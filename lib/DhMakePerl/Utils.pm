@@ -13,16 +13,20 @@ DhMakePerl::Utils - helper routined for dh-make-perl and alike
 
 =cut
 
-our @EXPORT_OK = qw( find_cpan_module
-                     is_core_module
-                     nice_perl_ver
-                     find_core_perl_dependency );
+our @EXPORT_OK = qw(
+    find_core_perl_dependency
+    find_cpan_module
+    is_core_module
+    nice_perl_ver
+    split_version_relation
+);
 
 use base Exporter;
 
+use 5.10.0;
+
 use Module::CoreList ();
 use Debian::Dependency;
-use Debian::Version qw(deb_ver_cmp);
 
 =head1 FUNCTIONS
 
@@ -160,12 +164,12 @@ module is not available in any perl released by Debian, return undef.
 
 our %debian_perl = (
     '5.8'   => {
-        min => '5.8.8',
-        max => '5.8.8',
+        min => Dpkg::Version->new('5.8.8'),
+        max => Dpkg::Version->new('5.8.8'),
     },
     '5.10'  => {
-        min => '5.10.0',
-        max => '5.10.1',
+        min => Dpkg::Version->new('5.10.0'),
+        max => Dpkg::Version->new('5.10.1'),
     },
 );
 
@@ -190,8 +194,8 @@ sub find_core_perl_dependency {
 
         # we want to avoid depending on things like 5.8.9 which aren't in
         # Debian and can contain stuff newer than in 5.10.0
-        if ( $debian_perl{$major}
-            and deb_ver_cmp( $debian_perl{$major}{max}, $v ) >= 0 )
+        if (    $debian_perl{$major}
+            and $debian_perl{$major}{max} >= $v )
         {
             return Debian::Dependency->new( 'perl', $v );
         }
@@ -199,6 +203,41 @@ sub find_core_perl_dependency {
 
     # not a core module
     return undef;
+}
+
+=item split_version_relation I<string>
+
+Splits the string, typicaly found in dependency fields' values in CPAN META
+into relation and version. If no relation is found in the string, C<< >= >> is
+assumed.
+
+Returns a list of relation and version. The relation is suitable for using in
+debian package dependency version requirements.
+
+For example
+
+=over
+
+=item split_version_relation('0.45') returns ( '>=', '0.45' )
+
+=item split_version_relation('< 0.56') returns ( '<<', '0.56' )
+
+=back
+
+=cut
+
+sub split_version_relation {
+    my $in = shift;
+
+    $in =~ s/^\s*([<>=!])\s*//;
+
+    my $rel = $1 // '>=';
+
+    $rel = '>>' if  $rel eq '>';
+
+    $rel = '<<' if $rel eq '<';
+
+    return ( $rel, $in );
 }
 
 =back

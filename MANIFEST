@@ -1,4 +1,5 @@
 Build.PL
+Changes
 COPYING
 dh-make-perl
 lib/Debian/AptContents.pm
@@ -10,8 +11,8 @@ lib/Debian/Control/Stanza/CommaSeparated.pm
 lib/Debian/Control/Stanza/Source.pm
 lib/Debian/Dependencies.pm
 lib/Debian/Dependency.pm
+lib/Debian/DpkgLists.pm
 lib/Debian/Rules.pm
-lib/Debian/Version.pm
 lib/Debian/WNPP/Bug.pm
 lib/Debian/WNPP/Query.pm
 lib/DhMakePerl.pm
@@ -28,7 +29,9 @@ lib/DhMakePerl/Utils.pm
 Makefile
 MANIFEST			This list of files
 MANIFEST.SKIP
+META.yml
 privinc/My/Builder.pm
+README
 share/rules.dh7+quilt.xs+noxs
 share/rules.dh7.noxs
 share/rules.dh7.tiny
@@ -103,6 +106,7 @@ t/dists/Strange-2.1/wanted-debian/copyright
 t/dists/Strange-2.1/wanted-debian/libstrange-perl.docs
 t/dists/Strange-2.1/wanted-debian/rules
 t/dists/Strange-2.1/wanted-debian/watch
+t/DpkgLists.t
 t/extract_name_ver.t
 t/extract_name_ver_from_makefile.t
 t/makefiles/module-install-autodie.PL
@@ -112,5 +116,6 @@ t/perl-versions.t
 t/pod-coverage.t
 t/pod.t
 t/rules.t
+t/split_version_relation.t
 TODO
-META.yml
+xt/pod-spelling.t

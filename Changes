@@ -1,0 +1,36 @@
+0.67
+    POD: drop "--" in front of the commands.
+    refresh: ensure ->rules is there before attempting to fiddle quilt
+        integration
+
+    Add support for version relations in META
+
+    Debian::Dependency now survives being given a string with leading spaces
+
+    make: implement recursive making of missing dependencies when --recursive
+        is given. (Debian bug #342751)
+
+    FromCPAN: remove leading 'v' from versions
+
+    add Debian::DpkgLists - 'dpkg -S' on steroids
+
+    FromCPAN: use Debian::DpkgLists as a last resort. This allows finding
+        dependencies that are present in locally-installed packages.
+        (Debian bug #478781)
+
+    Dependency: the 'ver' member is an instance of Dpkg::Version
+        Use its ability to compare and drop Debian::Version
+
+    Dependenc{y,ies}: reduce '--' to '-' in the NAME POD section
+
+    make: try harder to discover already existing package by looking up
+        distribution modules in APT contents and dpkg file lists.
+
+    replace CPAN::Config->load with CPAN:Handle::Config->load
+        the former seems obsolete and only warns:
+            Dispatching deprecated method 'CPAN::Config::load' to
+            CPAN::HandleConfig
+
+    added README
+
+    added xt/pod-spelling.t to help test POD spelling
